@@ -1,0 +1,565 @@
+#!/usr/bin/bash 
+
+#####
+##### 
+# `vimizer` program allows to install and configure vim and zsh program .
+##### 
+#####
+
+set -o pipefail 
+
+
+
+### Action for the deployment -> start tag[d0]
+
+if [[ $# -eq 0 ]]
+then
+
+    echo "~"
+
+    read -p "Your are about do deploy configurations, continue ? [y/n] : " checkInput
+
+    if [[ $checkInput != "y"  ]] && [[ $checkInput != "yes" ]]
+    then
+        echo ""
+        echo -e "The deployment was aborted \U001F917"
+
+        exit 0
+    fi
+fi
+
+### Action for the deployment -> end tag[d0]
+
+
+
+
+
+### Manager input parameters -> start tag[m0]
+
+if [[ $# -eq 1 ]] && [[ $1 == "--help" ]]
+then
+
+    #
+    if [[ -e "/usr/lib/vimizer/documentation/info/vimizer-help" ]]
+    then
+        #
+        cat "/usr/lib/vimizer/documentation/info/vimizer-help" 2> /dev/null
+
+        exit 0
+    fi
+
+elif [[ $# -eq 1 ]] && [[ $1 == "--version" ]]
+then
+
+    #
+    if [[ -e "/usr/lib/vimizer/documentation/info/vimizer-version-pure" ]]
+    then
+        #
+        cat "/usr/lib/vimizer/documentation/info/vimizer-version-pure" 2> /dev/null
+
+        exit 0
+    fi
+fi
+
+# 
+if [[ $# -gt 0 ]]
+then
+    echo ""
+    echo -e "No input parameter is required except [ --version, --help ] \U001F917"
+    echo ""
+
+    exit 1
+fi
+
+### Manager input parameters -> end tag[m0]
+
+
+
+
+
+### Check to see who executes the `am-okay` program, then get the personnel directory
+#   of this user, then ... -> start tag[k0]
+
+flagBehalfSudo=""
+getPersonalUserDir="$HOME"
+getTheRealUser="$USER"
+getTheGroupNameUser=""
+flagSudoUser="false"
+flagRootDirForActions="false"
+
+if [[ -n "$SUDO_USER" ]]
+then
+    #
+    flagBehalfSudo="$SUDO_USER"
+    getTheRealUser="$SUDO_USER"
+    getTheGroupNameUser=` id -gn $getTheRealUser `
+    flagSudoUser="true"
+
+    # Get the personnel directory of the user
+    getPersonalUserDir=` getent passwd "$flagBehalfSudo" | cut -d ":" -f6 `
+fi
+
+### Check to see who executes the `am-okay` program, then get the personnel directory
+#   of this user, then ... -> end tag[k0]
+
+
+
+
+
+# Declaration variables
+username=$getTheRealUser
+getHomeDirUsername=$getPersonalUserDir
+tmpDirCurrentUser="/tmp/.vimizer/$getTheRealUser"
+flagShellChanged="true"
+flagCurrentShellZSh="true"
+userAsk=""
+counterRetypePasswd=0
+counter=0
+
+
+
+
+
+### To see if the `zsh` and `vim` are installed and ... -> start tag[r0]
+
+if [[ ` whereis zsh | grep "\/usr\/bin\/zsh\|\/bin\/zsh" ` ]] && [[ ` whereis vim | grep "\/usr\/bin\/vim\|\/bin\/vim" ` ]]
+then
+
+    # Creation of temporary dir
+    if [[ ! ( -e "/tmp/.vimizer/$username" ) ]]
+    then
+
+        #
+         mkdir -p  "/tmp/.vimizer/$username" &> /dev/null
+
+         chmod 755 "/tmp/.vimizer/$username" &> /dev/null
+
+        # 
+        if [[ $? -ne 0 ]]
+        then
+            echo -e "Something is wrong, make sure you have the rights to write in "
+            echo -e "the [ /tmp ] directory  ⚠️  "
+            echo ""
+
+            exit 1
+        fi
+    fi
+
+   
+    echo ""
+    echo "~"
+    echo -e "Let's go \U0026A1 "
+    echo ""
+else
+    echo ""
+    echo "~"
+    echo -e "Please install \e[32;1mvim\e[0m and \e[32;1mbash\e[0m program "
+    echo ""
+
+    exit 1
+fi
+
+### To see if the `zsh` and `vim` are installed and ... -> end tag[r0]
+
+
+
+
+### Deployment files/dirs  -> start tag[a0]
+
+# Creation the directories where the fonts will be sent
+if [[ ! ( -e "$getHomeDirUsername/.local/share/fonts" ) ]]
+then
+    mkdir -p "$getHomeDirUsername/.local/share/fonts" 2> /dev/null
+fi
+
+
+
+# Copy of fonts
+if [[ -e "$getHomeDirUsername/.local/share/fonts" ]]
+then
+
+    #
+    if [[ -e "/usr/lib/vimizer/library/depends/vimizer-fonts" ]]
+    then
+
+        #
+        cp -ra --backup=numbered "/usr/lib/vimizer/library/depends/vimizer-fonts" \
+            "$getHomeDirUsername/.local/share/fonts"  2> /dev/null
+
+        # 
+        if [[ $? -ne 0 ]]
+        then
+            echo -e "Something is wrong, make sure you have the rights to write in "
+            echo -e "your home directory  ⚠️  "
+            echo ""
+
+            exit 1
+        fi
+    else
+        echo ""
+        echo "~"
+        echo -e "Missing files/dirs, please reinstall the \e[32;1mvimizer\e[0m program \U001F9D0 "
+        echo ""
+
+        exit 1
+    fi
+fi
+
+
+
+# Deployment of the `.vim` directory and `.vimrc` file ...
+if [[ -e "/usr/lib/vimizer/library/depends/vim" ]]
+then
+
+    vimrcFile="/usr/lib/vimizer/library/depends/vim/vimrc"
+    
+
+
+    #
+    if [[ -e "$getHomeDirUsername/.vimrc" ]]
+    then
+        
+        #
+        mv --backup=numbered "$getHomeDirUsername/.vimrc" "$getHomeDirUsername/.vimrc_backup" 2> /dev/null 
+
+        #
+        if [[ $? -ne 0 ]]
+        then
+            echo -e "Something is wrong, make sure you have the rights to write in "
+            echo -e "your home directory  ⚠️  "
+            echo ""
+
+            exit 1
+        fi
+        
+        #
+        cat $vimrcFile > "$getHomeDirUsername/.vimrc" 2> /dev/null 
+
+        #
+        if [[ $? -ne 0 ]]
+        then
+            echo -e "Something is wrong, make sure you have the rights to write in "
+            echo -e "your home directory  ⚠️  "
+            echo ""
+
+            exit 1
+        fi
+        
+    else
+        #
+	    cat "$vimrcFile" >  "$getHomeDirUsername/.vimrc"
+        
+        #
+        if [[ $? -ne 0 ]]
+        then
+            echo -e "Something is wrong, make sure you have the rights to write in "
+            echo -e "your home directory  ⚠️  "
+            echo ""
+
+            exit 1
+        fi
+    fi
+    
+
+
+    # Copy of plugins 
+    if [[ -e "$getHomeDirUsername/.vim" ]]
+    then
+       
+        #
+        if [[ ! ( -e "/usr/lib/vimizer/library/depends/vim/vim" ) ]]
+        then
+            echo ""
+            echo "~"
+            echo -e "Missing files/dirs, please reinstall the \e[32;1mvimizer\e[0m program \U001F9D0 "
+            echo ""
+
+            exit 1
+        fi 
+
+        #
+        if [[  ` diff -r "/usr/lib/vimizer/library/depends/vim/vim"  "$getHomeDirUsername/.vim" 2> /dev/null ` ]]
+        then
+            #
+            mv --backup=numbered "$getHomeDirUsername/.vim" "$getHomeDirUsername/.vim_backup" 2> /dev/null 
+
+            #
+            if [[ $? -ne 0 ]]
+            then
+                echo -e "Something is wrong, make sure you have the rights to write in "
+                echo -e "your home directory  ⚠️  "
+                echo ""
+
+                exit 1
+            fi
+
+            #
+            cp -ar "/usr/lib/vimizer/library/depends/vim/vim"  "$getHomeDirUsername/.vim" 2> /dev/null
+
+            #
+            if [[ $? -ne 0 ]]
+            then
+                echo -e "Something is wrong, make sure you have the rights to write in "
+                echo -e "your home directory  ⚠️  "
+                echo ""
+
+                exit 1
+            fi
+        fi
+    else
+        #
+        cp -ar "/usr/lib/vimizer/library/depends/vim/vim"  "$getHomeDirUsername/.vim" 2> /dev/null
+
+        #
+        if [[ $? -ne 0 ]]
+        then
+            echo -e "Something is wrong, make sure you have the rights to write in "
+            echo -e "your home directory  ⚠️  "
+            echo ""
+
+            exit 1
+        fi
+    fi
+
+else
+    echo ""
+    echo "~"
+    echo -e "Missing files/dirs, please reinstall the \e[32;1mvimizer\e[0m program \U001F9D0 "
+    echo ""
+
+    exit 1
+fi
+
+
+
+# Deployment of the `.zshrc` file ...
+if [[ -e "/usr/lib/vimizer/library/depends/zsh" ]]
+then
+    
+    zshrcFile="/usr/lib/vimizer/library/depends/zsh/zshrc"
+
+
+
+    #
+    if [[ ! ( -e "$getHomeDirUsername/.zshrc" )  ]]
+    then
+        #
+        touch "$getHomeDirUsername/.zshrc" 2> /dev/null
+        
+        #
+        if [[ $? -ne 0 ]]
+        then
+            echo -e "Something is wrong, make sure you have the rights to write in "
+            echo -e "your home directory  ⚠️  "
+            echo ""
+
+            exit 1
+        fi
+
+        #
+        cat $zshrcFile > "$getHomeDirUsername/.zshrc"
+
+    else
+        
+        #
+        mv --backup=numbered "$getHomeDirUsername/.zshrc" "$getHomeDirUsername/.zshrc_backup" 2> /dev/null
+
+        #
+        if [[ $? -ne 0 ]]
+        then
+            echo -e "Something is wrong, make sure you have the rights to write in "
+            echo -e "your home directory  ⚠️  "
+            echo ""
+
+            exit 1
+        fi
+
+        #
+        cat $zshrcFile > "$getHomeDirUsername/.zshrc"
+
+        #
+        if [[ $? -ne 0 ]]
+        then
+            echo -e "Something is wrong, make sure you have the rights to write in "
+            echo -e "your home directory  ⚠️  "
+            echo ""
+
+            exit 1
+        fi
+    fi
+
+else
+    echo ""
+    echo "~"
+    echo -e "Missing files/dirs, please reinstall the \e[32;1mvimizer\e[0m program \U001F9D0 "
+    echo ""
+
+    exit 1
+fi
+
+### Deployment files/dirs  -> end tag[a0]
+
+
+
+
+
+### Deployment plugins -> start tag[p0]
+
+echo ""
+echo ""
+echo "Wait ..."
+sleep 3
+
+vim +PlugInstall +qall
+
+# Clear the screen
+clear
+
+### Deployment plugins -> end tag[p0]
+
+
+
+
+
+# Remove the temporary directory
+rm -fr $tmpDirCurrentUser 2> /dev/null
+
+
+
+
+
+### Change of shell -> start tag[c0]
+#
+if [[ ! ` echo "$SHELL" | grep -- "zsh" ` ]]
+then
+
+    #
+    flagCurrentShellZSh="false"
+
+
+    
+    #
+    while [[ $counterRetypePasswd < 3 ]]
+    do
+        # Declaration variables
+        passwdUser=""
+    
+    
+    
+        #
+        if [[ $counterRetypePasswd -gt 0 ]]
+        then
+            echo ""
+            echo -e "Wrong password \U001F9D0 "
+        fi
+        
+        #
+        echo ""
+        echo "~"
+        read -p "Enter your password, then valid to change the shell : " -s passwdUser
+    
+        echo ""
+        echo ""
+        echo "Wait ..."
+    
+        chsh --shell /usr/bin/zsh  $username <<< $passwdUser  &> /dev/null
+    
+        #
+        if [[ $? -eq 0 ]]
+        then
+            echo ""
+            echo "~"
+            echo -e "Okay \U002705"
+    
+            #
+            sleep 3
+    
+            #
+            break 
+        fi
+    
+        #
+        counterRetypePasswd=$(( counterRetypePasswd + 1 ))
+    
+    done
+fi
+
+
+
+# Verify if the shell has been changed 
+if [[ $counterRetypePasswd -eq 3 ]]
+then
+    echo ""
+    echo "~"
+    read -p "The shell has not been changed, do you want to continue the process [y/n] : " userAsk 
+
+    #
+    if [[ $userAsk != "y" ]] && [[ $userAsk != "yes" ]]
+    then
+        echo ""
+        echo "~"
+        echo -e "The process was interrupted \U001F50C, however \e[32;1mvim\e[0m and \e[32;1mzsh\e[0m configurations have "
+        echo -e "been done "
+        echo ""
+
+        exit 1
+    fi
+
+    #
+    flagShellChanged="false"
+    userAsk=""
+fi
+
+### Change of shell -> end tag[c0]
+
+
+
+
+
+# Update of fonts
+fc-cache -vf 
+
+#
+if [[ $? -eq 0 ]] && [[ $counterRetypePasswd < 3 ]]
+then
+    echo ""
+    echo "~"
+    echo -e "Vimizing successfully \U002705 "
+    echo ""
+   
+    if [[ $flagCurrentShellZSh == "false" ]]
+    then
+        
+        #
+        echo "~"
+        echo "Please restart your session for that the change shell to take effect "
+        echo ""
+        read -p "Do you want to restart your session [y/n] : " userAsk
+    
+        #
+        if [[ $userAsk == "yes" ]] || [[ $userAsk == "y" ]]
+        then
+            gnome-session-quit --no-prompt 2> /dev/null
+    
+            if [[ $? -ne 0 ]]
+            then
+                echo ""
+                echo "~"
+                echo "Do it manually"
+                echo ""
+                exit 1
+            fi
+        fi
+    fi
+    
+    #
+    exit 0
+    
+elif [[ $? -eq 0 ]] && [[ $flagShellChanged == "false" ]]
+then
+    echo ""
+    echo "~"
+    echo -e "\e[32;1mvim\e[0m and \e[32;1mzsh\e[0m configurations have been done \U002705 "
+
+    exit 0
+fi

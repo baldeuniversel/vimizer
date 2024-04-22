@@ -1,0 +1,16 @@
+#!/usr/bin/bash
+
+#####
+# postinst script
+####
+
+set -uo pipefail
+
+
+# Just to print the name of the author
+echo ""
+echo ""
+echo "~"
+
+tput setaf 6; tput bold; echo "By Baldé ~" `tput sgr0` 2> /dev/null
+
